@@ -1,0 +1,71 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  appDirectory: '/home/ubuntu/apps/express-app'
+
+steps:
+  # step 1: Install Node.js
+  - task: NodeTool@0
+    displayName: 'Install Node.js'
+    inputs:
+      versionSpec: '22.x'
+  # step 2: Install dependencies
+  - script: npm ci
+    displayName: 'Install dependencies'
+  
+  # step 3: Run tests
+  - script: npm test
+    displayName: 'Run tests'
+  
+  # step 4: Create deployment directory
+  - task: SSH@0
+    displayName: 'Prepare EC2 directory'
+    inputs:
+      sshEndpoint: 'aws-ec2-ssh'
+      runOptions: 'inline'
+      inline: |
+        mkdir -p /home/ubuntu/apps/express-app
+      failOnStdErr: false
+
+  # Step 5: Copy application files to EC2
+  - task: CopyFilesOverSSH@0
+    displayName: 'Copy application to EC2'
+    inputs:
+      sshEndpoint: 'aws-ec2-ssh'
+      sourceFolder: '$(Build.SourcesDirectory)'
+      contents: |
+        **
+        !.git/**
+        !node_modules/**
+      targetFolder: '$(appDirectory)'
+      cleanTargetFolder: false
+      overwrite: true
+
+  # Step 6: Install production dependencies and restart app
+  - task: SSH@0
+    displayName: 'Deploy Express application'
+    inputs:
+      sshEndpoint: 'aws-ec2-ssh'
+      runOptions: 'inline'
+      inline: |
+        cd /home/ubuntu/apps/express-app
+        npm ci --omit=dev
+
+        if pm2 describe express-app >/dev/null 2>&1; then
+          pm2 restart express-app --update-env
+        else
+          pm2 start npm --name express-app -- start
+        fi
+
+        pm2 save
+      failOnStdErr: false
