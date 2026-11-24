@@ -60,6 +60,7 @@ steps:
       inline: |
         cd /home/ubuntu/apps/express-app
         npm ci --omit=dev
+        npm run build
 
         if pm2 describe express-app >/dev/null 2>&1; then
           pm2 restart express-app --update-env
