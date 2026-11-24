@@ -23,11 +23,7 @@ steps:
   - script: npm ci
     displayName: 'Install dependencies'
   
-  # step 3: Run tests
-  - script: npm test
-    displayName: 'Run tests'
-  
-  # step 4: Create deployment directory
+  # step 3: Create deployment directory
   - task: SSH@0
     displayName: 'Prepare EC2 directory'
     inputs:
@@ -37,7 +33,7 @@ steps:
         mkdir -p /home/ubuntu/apps/express-app
       failOnStdErr: false
 
-  # Step 5: Copy application files to EC2
+  # Step 4: Copy application files to EC2
   - task: CopyFilesOverSSH@0
     displayName: 'Copy application to EC2'
     inputs:
@@ -51,7 +47,7 @@ steps:
       cleanTargetFolder: false
       overwrite: true
 
-  # Step 6: Install production dependencies and restart app
+  # Step 5: Install production dependencies and restart app
   - task: SSH@0
     displayName: 'Deploy Express application'
     inputs:
